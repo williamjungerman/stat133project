@@ -1,0 +1,50 @@
+---
+title: "Untitled"
+author: ""
+date: ""
+output: 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+---
+<!-- Don't edit in between this line and the one below -->
+```{r include=FALSE}
+# Don't delete this chunk if you are using the DataComputing package
+library(DataComputing)
+library(tidyr)
+```
+*Source file* 
+```{r, results='asis', echo=FALSE}
+includeSourceDocuments()
+```
+
+load data:
+```{r}
+meteorite <- read.csv("~/Documents/UC Berkeley/Junior year/Spring 2017/Stats 133/stat133project/meteorite-landings.csv")
+```
+
+take out 0 longitude/latitudes; year stuff
+```{r}
+meteorite <- meteorite %>% 
+  filter(reclat != 0 & reclong != 0) %>%
+  filter(year>=860 & year<=2016) 
+meteorite$count <- c(rep(1,31813))
+```
+
+```{r}
+theme_project <- theme(axis.ticks.y = element_blank(),
+panel.background = element_rect(fill = "royalblue2"), plot.background = element_rect(fill = "lightblue"), panel.grid.major = element_line(color = "lightgoldenrod1", size=.2), panel.grid.minor = element_line(color = "lightgoldenrod1", size=.2), panel.grid.major.x=element_blank())
+```
+
+
+```{r}
+year_dt <- meteorite %>%
+  filter(year >= 1500) %>%
+  group_by(year,fall) %>%
+  summarise(count = n())
+
+plot1 <- year_dt %>%
+  ggplot(aes(x = year)) + geom_density(aes(color = fall, fill = fall), alpha = 0.5) + xlab("Year") + ylab("Density") + theme_project
+plot1
+```
+
