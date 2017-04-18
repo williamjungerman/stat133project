@@ -14,6 +14,8 @@ library(DataComputing)
 library(tidyr)
 library(XML)
 library(RJSONIO)
+library(sp)
+library(rworldmap)
 ```
 *Source file* 
 ```{r, results='asis', echo=FALSE}
@@ -22,6 +24,7 @@ includeSourceDocuments()
 
 Continent Function adopted from Stack Overflow: http://stackoverflow.com/questions/17768160/is-there-a-way-in-r-to-tell-what-continent-a-certain-lat-long-coordinate-belongs
 ```{r}
+
 continentFromLatLon <- function(lat, lon)
     {
 
@@ -43,7 +46,6 @@ continentFromLatLon <- function(lat, lon)
 
 }
 
-continentFromLatLon(54.81667,61.11667)
 ```
 
 ```{r}
@@ -55,9 +57,11 @@ take out 0 longitude/latitudes; year stuff
 meteorite <- meteorite %>% 
   filter(reclat != 0 & reclong != 0) %>%
   filter(year>=860 & year<=2016) %>%
-  mutate(count = c(rep(1,31813))) %>%
-  mutate(continent = continentFromLatLon(54.81667,61.11667))
-continentFromLatLon(54.81667,61.11667)
+  mutate(count = c(rep(1,31813))) #%>%
+  #mutate(continent = continentFromLatLon(reclat, reclong))
+
+meteorite2 <- meteorite[1:100,]
+meteorite2$continent <- continentFromLatLon(meteorite2$reclat, meteorite2$reclong)
 ```
 
 ```{r}
