@@ -11,7 +11,15 @@ output:
 ```{r include=FALSE}
 # Don't delete this chunk if you are using the DataComputing package
 library(DataComputing)
+library(XML)
+library(dplyr)
+library(maps)      
+library(mapdata) 
 library(tidyr)
+library(geonames)
+library(ggmap)
+library(mapdata)
+library(rworldmap)
 ```
 *Source file* 
 ```{r, results='asis', echo=FALSE}
@@ -24,10 +32,12 @@ meteorite <- read.csv("~/Documents/UC Berkeley/Junior year/Spring 2017/Stats 133
 ```
 
 take out 0 longitude/latitudes; year stuff
+add column for continent
 ```{r}
 meteorite <- meteorite %>% 
   filter(reclat != 0 & reclong != 0) %>%
   filter(year>=860 & year<=2016) 
+
 meteorite$count <- c(rep(1,31813))
 ```
 
@@ -47,4 +57,57 @@ plot1 <- year_dt %>%
   ggplot(aes(x = year)) + geom_density(aes(color = fall, fill = fall), alpha = 0.5) + xlab("Year") + ylab("Density") + theme_project
 plot1
 ```
+
+```{r}
+map('world2Hires')
+points(meteorite$reclong, meteorite$reclat)
+```
+
+
+```{r}
+coords <- data.frame('Long' = meteorite$reclong, 'Lat' = meteorite$reclat)
+
+coords2region = function(points){ # where points is a df taking longitude as a first column and latitude as a second
+  countriesSP <- getMap(resolution='low')
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))
+  indices = over(pointsSP, countriesSP)
+  indices$REGION
+  }
+
+coords2country = function(points){
+  countriesSP <- getMap(resolution='low')
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))
+  indices = over(pointsSP, countriesSP)
+  indices$ADMIN
+  }
+
+meteorite$region <- coords2region(coords)
+meteorite$country <- coords2country(coords)
+```
+
+```{r}
+plot3 <- meteorite %>%
+  ggplot(aes(x=year,y=mass)) + facet_wrap(. ~ region) + geom_point()
+plot3
+```
+
+
+
+Use package mapdata which works well with ggplot, explain coord_fixed, geom_polygon
+filter out points with longitude bigger than 200 
+
+```{r}
+meteorite_map <- meteorite %>% 
+  filter(reclong < 200)
+
+world <- map_data("world")
+ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map, aes(x=reclong, y=reclat,color = fall), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + facet_grid(~ fall) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none")
+```
+
+
+```{r}
+meteorite %>% 
+  ggplot(aes(x = fall, y = log((mass)), fill = fall)) + geom_boxplot() + theme(legend.position = "none")
+```
+
 
