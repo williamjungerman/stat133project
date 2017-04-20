@@ -158,17 +158,6 @@ Number_per_year %>%
 ```
 
 ```{r}
-
-top_type_meteorite <- meteorite %>%
-  group_by(recclass) %>%
-  filter(recclass %in% top_types$recclass) %>%
-  group_by(recclass, region) %>%
-  summarise(total_per_continent=n())
-  
-```
-
-
-```{r}
 top_types<- meteorite %>%
   group_by(recclass) %>%
   summarise(top_meteorites= n()) %>%
@@ -176,6 +165,16 @@ top_types<- meteorite %>%
   head(10)
   
 top_types
+```
+
+```{r}
+
+top_type_meteorite <- meteorite %>%
+  group_by(recclass) %>%
+  filter(recclass %in% top_types$recclass) %>%
+  group_by(recclass, region) %>%
+  summarise(total_per_continent=n())
+  
 ```
 
 
