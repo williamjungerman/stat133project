@@ -1,0 +1,228 @@
+---
+title: "central_file"
+author: ""
+date: ""
+output: 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+---
+<!-- Don't edit in between this line and the one below -->
+```{r include=FALSE}
+# Don't delete this chunk if you are using the DataComputing package
+library(DataComputing)
+library(tidyr)
+library(XML)
+library(RJSONIO)
+library(sp)
+library(rworldmap)
+library(maps)
+library(mapdata)
+```
+
+*Source file* 
+```{r, results='asis', echo=FALSE}
+includeSourceDocuments()
+```
+
+Continent Function adopted from Stack Overflow: http://stackoverflow.com/questions/17768160/is-there-a-way-in-r-to-tell-what-continent-a-certain-lat-long-coordinate-belongs
+
+
+```{r}
+meteorite <- read.csv("~/Downloads/meteorite-landings.csv")
+```
+
+take out 0 longitude/latitudes; year stuff
+```{r}
+meteorite <- meteorite %>% 
+  filter(reclat != 0 & reclong != 0) %>%
+  filter(year>=860 & year<=2016) %>%
+  filter(recclass != "Unknown") %>%
+  mutate(count = 1)
+```
+
+Replacing mass na's with the medians of the same meteorite types
+```{r}
+replace_mass_na <- function(index, class) {
+  same_classes <- meteorite$recclass[meteorite$recclass == class]
+  masses <- meteorite$mass[same_classes]
+  return(median(masses))
+}
+
+for (count in 1:nrow(meteorite)) {
+  if (is.na(meteorite[count, "mass"])) {
+    class <- meteorite[count, "recclass"]
+    meteorite[count, "mass"] <- replace_mass_na(count, meteorite[count, "recclass"])
+  } 
+}
+```
+
+Add region and country columns
+```{r}
+coords <- data.frame('Long' = meteorite$reclong, 'Lat' = meteorite$reclat)
+
+coords2region = function(points){ # where points is a df taking longitude as a first column and latitude as a second
+  countriesSP <- getMap(resolution='low')
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))
+  indices = over(pointsSP, countriesSP)
+  indices$REGION
+  }
+
+coords2country = function(points){
+  countriesSP <- getMap(resolution='low')
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))
+  indices = over(pointsSP, countriesSP)
+  indices$ADMIN
+  }
+
+meteorite$region <- coords2region(coords)
+meteorite$country <- coords2country(coords)
+```
+
+Our custom theme
+```{r}
+theme_project <- theme(axis.ticks.y = element_blank(),
+panel.background = element_rect(fill = "royalblue2"), plot.background = element_rect(fill = "lightblue"), panel.grid.major = element_line(color = "lightgoldenrod1", size=.2), panel.grid.minor = element_line(color = "lightgoldenrod1", size=.2), panel.grid.major.x=element_blank())
+
+```
+
+Extraneous dfs
+```{r}
+total_per_year_df<-meteorite %>%
+  filter(year>1800) %>% 
+  group_by(year) %>%
+  summarise(total_by_year=n()) 
+
+
+found_per_year_df <- meteorite %>%
+  filter(fall=="Found") %>%
+  group_by(year) %>%
+  summarise(found_by_year=n()) 
+
+golden_ratio_df <- total_per_year_df %>%
+  left_join(found_per_year_df) %>%
+  mutate(ratio= ifelse(is.na(found_by_year), 0, found_by_year/total_by_year))
+
+#View(golden_ratio_df)
+
+golden_ratio_df %>%
+  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE) +geom_point() + geom_smooth(method="lm", se=FALSE)
+
+```
+
+
+```{r}
+year_dt <- meteorite %>%
+  filter(year >= 1500) %>%
+  group_by(year,fall) %>%
+  summarise(count = n())
+
+plot1 <- year_dt %>%
+  ggplot(aes(x = year)) + geom_density(aes(color = fall, fill = fall), alpha = 0.5) + xlab("Year") + ylab("Density") + theme_project
+plot1
+
+#row 343 11436 guangan
+```
+
+```{r}
+plot1<- meteorite %>%
+  filter(year >1800) %>%
+  ggplot(aes(x=year)) + geom_density(aes(col=fall, fill=fall)) + facet_grid(~fall)
+
+plot1
+
+```
+
+Fall Value Count Per Year
+```{r}
+
+Found_By_Year <- meteorite %>%
+  filter(fall=="Found") %>%
+  group_by(year) %>%
+  summarise(Found_By_Year=log(n())) 
+
+Fell_Per_Year <- meteorite %>%
+  filter(fall=="Fell") %>%
+  group_by(year) %>%
+  summarise(Fell_by_year=log(n())) 
+
+Number_per_year<- Found_By_Year %>%
+  left_join(Fell_Per_Year) %>%
+  filter(year>1700)
+
+
+Number_per_year %>%
+  ggplot(aes(x=year)) +geom_line(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
+  geom_line(aes(y = Fell_by_year, colour = "Fell_by_year")) + labs(title="Meteorites Found Per Year")
+
+```
+
+```{r}
+
+top_type_meteorite <- meteorite %>%
+  group_by(recclass) %>%
+  filter(recclass %in% top_types$recclass) %>%
+  group_by(recclass, region) %>%
+  summarise(total_per_continent=n())
+  
+```
+
+
+```{r}
+top_types<- meteorite %>%
+  group_by(recclass) %>%
+  summarise(top_meteorites= n()) %>%
+  arrange(desc(top_meteorites)) %>%
+  head(10)
+  
+top_types
+```
+
+
+```{r warning=FALSE}
+
+ggplot(meteorite, aes(x = fall, y = log(mass))) + 
+  geom_boxplot(aes(fill = fall)) +
+  labs(x = "Fall", y = "Mass", title = paste("Fell vs Found Mass")) +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+#Use package mapdata which works well with ggplot, explain coord_fixed, geom_polygon
+#filter out points with longitude bigger than 200 
+
+meteorite_map <- meteorite %>% 
+  filter(reclong < 200)
+
+world <- map_data("world")
+ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map, aes(x=reclong, y=reclat,color = fall), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + facet_grid(~ fall) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none")
+```
+
+
+```{r}
+test <- meteorite %>%
+  filter(year>1800) %>%
+  filter(!is.na(region)) %>%
+  group_by(year, region, fall) %>%
+  summarise(count = log(n()))
+
+ggplot(test, aes(x=year, y=count)) + 
+  geom_line(aes(color = fall)) +
+  facet_wrap(~ region) + 
+  labs(title=paste("Number of found meteorites per year in each continent"))
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
