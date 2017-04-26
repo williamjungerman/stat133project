@@ -84,10 +84,9 @@ Our custom theme
 ```{r}
 theme_project <- theme(axis.ticks.y = element_blank(),
 panel.background = element_rect(fill = "royalblue2"), plot.background = element_rect(fill = "lightblue"), panel.grid.major = element_line(color = "lightgoldenrod1", size=.2), panel.grid.minor = element_line(color = "lightgoldenrod1", size=.2), panel.grid.major.x=element_blank())
-
 ```
 
-Year data frames
+Global data frames
 ```{r}
 fell_found_yearly <- meteorite %>%
   filter(year >= 1500) %>%
@@ -98,6 +97,21 @@ total_per_year_df<-meteorite %>%
   filter(year>1800) %>% 
   group_by(year) %>%
   summarise(total_by_year=n()) 
+
+top_types<- meteorite %>%
+  group_by(recclass) %>%
+  summarise(top_meteorites= n()) %>%
+  arrange(desc(top_meteorites)) %>%
+  head(5)
+
+top_type_meteorite <- meteorite %>%
+  group_by(recclass) %>%
+  filter(recclass %in% top_types$recclass) %>%
+  group_by(recclass, region) %>%
+  summarise(total_per_continent=n())
+
+meteorite_map <- meteorite %>% 
+  filter(reclong < 200)
 ```
 
 Found/Total Ratio Per Year
@@ -109,25 +123,25 @@ total_per_year_df %>%
     group_by(year) %>%
     summarise(found_by_year=n())) %>%
   mutate(ratio= ifelse(is.na(found_by_year), 0, found_by_year/total_by_year)) %>%
-  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE) +geom_point() + geom_smooth(method="lm", se=FALSE)
+  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE, colour = "blue") +geom_point() + geom_smooth(method="lm", se=FALSE, colour = "gold") + labs(y = "Ratio of Found/Total per year", x = "Year")
 
 ```
 
 Fell vs Found Density Over the Years
 ```{r}
 fell_found_yearly %>%
-  ggplot(aes(x = year)) + geom_density(aes(color = fall, fill = fall), alpha = 0.5) + xlab("Year") + ylab("Density") + theme_project
+  ggplot(aes(x = year)) + geom_density(aes(fill = fall), alpha = 0.8) + labs(x = "Year",y = "Density") +  scale_fill_manual("Fall Type",values=c("blue","gold"))
 ```
 
 Density of Fell and Found Over the Years
 ```{r}
 meteorite %>%
   filter(year >1800) %>%
-  ggplot(aes(x=year)) + geom_density(aes(col=fall, fill=fall)) +    facet_grid(~fall)
+  ggplot(aes(x=year)) + geom_density(aes(fill = fall), alpha =0.8) + facet_grid(~fall) + labs(x = "Year", y = "Density")  + scale_fill_manual("Fall Type",values=c("blue", "gold")) 
 ```
 
 Fall Value Count Per Year
-```{r fig.width = 10}
+```{r fig.width = 9}
 plot1 <- meteorite %>%
   filter(year > 1800 & fall=="Found") %>%
   group_by(year) %>%
@@ -139,7 +153,7 @@ plot1 <- meteorite %>%
   ggplot(aes(x=year)) +
   geom_line(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
   geom_line(aes(y = Fell_by_year, colour = "Fell_by_year")) +
-  labs(title="Meteorites Found Per Year")
+  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year")
 
 plot2 <- meteorite %>%
   filter(year > 1800 & fall=="Found") %>%
@@ -152,68 +166,51 @@ plot2 <- meteorite %>%
   ggplot(aes(x=year)) +
   geom_smooth(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
   geom_smooth(aes(y = Fell_by_year, colour = "Fell_by_year")) +
-  labs(title="Meteorites Found Per Year")
+  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year")
 
 grid.arrange(plot1, plot2, ncol=2)
-```
-
-```{r}
-top_types<- meteorite %>%
-  group_by(recclass) %>%
-  summarise(top_meteorites= n()) %>%
-  arrange(desc(top_meteorites)) %>%
-  head(10)
-  
-top_types
-```
-
-```{r}
-
-top_type_meteorite <- meteorite %>%
-  group_by(recclass) %>%
-  filter(recclass %in% top_types$recclass) %>%
-  group_by(recclass, region) %>%
-  summarise(total_per_continent=n())
-  
 ```
 
 
 ```{r warning=FALSE}
 
 ggplot(meteorite, aes(x = fall, y = log(mass))) + 
-  geom_boxplot(aes(fill = fall)) +
-  labs(x = "Fall", y = "Mass", title = paste("Fell vs Found Mass")) +
-  theme(legend.position = "none")
+  geom_boxplot(aes(fill = fall), alpha = 0.8) +
+  labs(x = "Fall", y = "Log(Mass)", title = paste("Fell vs Found log(Mass)")) +
+  theme(legend.position = "none") +
+ scale_fill_manual(values=c("blue", "gold"))
 
 ```
 
-```{r}
+Visualization of Found vs Fell by year 
+```{r fig.height = 8, fig.width = 8}
 #Use package mapdata which works well with ggplot, explain coord_fixed, geom_polygon
-#filter out points with longitude bigger than 200 
-
-meteorite_map <- meteorite %>% 
-  filter(reclong < 200)
 
 world <- map_data("world")
-ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map, aes(x=reclong, y=reclat,color = fall), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + facet_grid(~ fall) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none")
+ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map, aes(x=reclong, y=reclat,color = fall), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + facet_grid(~ fall) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none") 
 ```
 
 
 ```{r}
-test <- meteorite %>%
+meteorite %>%
   filter(year>1800) %>%
   filter(!is.na(region)) %>%
   group_by(year, region, fall) %>%
-  summarise(count = log(n()))
-
-ggplot(test, aes(x=year, y=count)) + 
+  summarise(count = log(n())) %>%
+ggplot(aes(x=year, y=count)) + 
   geom_line(aes(color = fall)) +
   facet_wrap(~ region) + 
-  labs(title=paste("Number of found meteorites per year in each continent"))
-  
+  labs(title=paste("Number of Found/Fell meteorites per year by continent"), x = "Year", y = "Count") 
+
 ```
 
 
+```{r}
+# not included for now, not sure what it shows 
+
+world <- map_data("world")
+ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map %>% filter(recclass %in% top_types$recclass), aes(x=reclong, y=reclat,color = recclass), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none")
+```
 
 
 
