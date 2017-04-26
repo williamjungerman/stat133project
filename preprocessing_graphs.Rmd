@@ -18,6 +18,7 @@ library(sp)
 library(rworldmap)
 library(maps)
 library(mapdata)
+library(gridExtra)
 ```
 
 *Source file* 
@@ -86,75 +87,74 @@ panel.background = element_rect(fill = "royalblue2"), plot.background = element_
 
 ```
 
-Extraneous dfs
+Year data frames
 ```{r}
-total_per_year_df<-meteorite %>%
-  filter(year>1800) %>% 
-  group_by(year) %>%
-  summarise(total_by_year=n()) 
-
-
-found_per_year_df <- meteorite %>%
-  filter(fall=="Found") %>%
-  group_by(year) %>%
-  summarise(found_by_year=n()) 
-
-golden_ratio_df <- total_per_year_df %>%
-  left_join(found_per_year_df) %>%
-  mutate(ratio= ifelse(is.na(found_by_year), 0, found_by_year/total_by_year))
-
-#View(golden_ratio_df)
-
-golden_ratio_df %>%
-  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE) +geom_point() + geom_smooth(method="lm", se=FALSE)
-
-```
-
-
-```{r}
-year_dt <- meteorite %>%
+fell_found_yearly <- meteorite %>%
   filter(year >= 1500) %>%
   group_by(year,fall) %>%
   summarise(count = n())
 
-plot1 <- year_dt %>%
-  ggplot(aes(x = year)) + geom_density(aes(color = fall, fill = fall), alpha = 0.5) + xlab("Year") + ylab("Density") + theme_project
-plot1
-
-#row 343 11436 guangan
+total_per_year_df<-meteorite %>%
+  filter(year>1800) %>% 
+  group_by(year) %>%
+  summarise(total_by_year=n()) 
 ```
 
+Found/Total Ratio Per Year
 ```{r}
-plot1<- meteorite %>%
+total_per_year_df %>%
+  filter(year >= 1800) %>% 
+  left_join(meteorite %>%
+    filter(fall=="Found") %>%
+    group_by(year) %>%
+    summarise(found_by_year=n())) %>%
+  mutate(ratio= ifelse(is.na(found_by_year), 0, found_by_year/total_by_year)) %>%
+  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE) +geom_point() + geom_smooth(method="lm", se=FALSE)
+
+```
+
+Fell vs Found Density Over the Years
+```{r}
+fell_found_yearly %>%
+  ggplot(aes(x = year)) + geom_density(aes(color = fall, fill = fall), alpha = 0.5) + xlab("Year") + ylab("Density") + theme_project
+```
+
+Density of Fell and Found Over the Years
+```{r}
+meteorite %>%
   filter(year >1800) %>%
-  ggplot(aes(x=year)) + geom_density(aes(col=fall, fill=fall)) + facet_grid(~fall)
-
-plot1
-
+  ggplot(aes(x=year)) + geom_density(aes(col=fall, fill=fall)) +    facet_grid(~fall)
 ```
 
 Fall Value Count Per Year
-```{r}
-
-Found_By_Year <- meteorite %>%
-  filter(fall=="Found") %>%
+```{r fig.width = 10}
+plot1 <- meteorite %>%
+  filter(year > 1800 & fall=="Found") %>%
   group_by(year) %>%
-  summarise(Found_By_Year=log(n())) 
+  summarise(Found_By_Year=log(n())) %>%
+  left_join(meteorite %>%
+    filter(year > 1800 & fall=="Fell") %>%
+    group_by(year) %>%
+    summarise(Fell_by_year=log(n()))) %>%
+  ggplot(aes(x=year)) +
+  geom_line(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
+  geom_line(aes(y = Fell_by_year, colour = "Fell_by_year")) +
+  labs(title="Meteorites Found Per Year")
 
-Fell_Per_Year <- meteorite %>%
-  filter(fall=="Fell") %>%
+plot2 <- meteorite %>%
+  filter(year > 1800 & fall=="Found") %>%
   group_by(year) %>%
-  summarise(Fell_by_year=log(n())) 
+  summarise(Found_By_Year=log(n())) %>%
+  left_join(meteorite %>%
+    filter(year > 1800 & fall=="Fell") %>%
+    group_by(year) %>%
+    summarise(Fell_by_year=log(n()))) %>%
+  ggplot(aes(x=year)) +
+  geom_smooth(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
+  geom_smooth(aes(y = Fell_by_year, colour = "Fell_by_year")) +
+  labs(title="Meteorites Found Per Year")
 
-Number_per_year<- Found_By_Year %>%
-  left_join(Fell_Per_Year) %>%
-  filter(year>1700)
-
-
-Number_per_year %>%
-  ggplot(aes(x=year)) +geom_line(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
-  geom_line(aes(y = Fell_by_year, colour = "Fell_by_year")) + labs(title="Meteorites Found Per Year")
-
+grid.arrange(plot1, plot2, ncol=2)
 ```
 
 ```{r}
