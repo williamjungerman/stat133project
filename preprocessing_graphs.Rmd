@@ -1,6 +1,6 @@
 ---
-title: "central_file"
-author: ""
+title: "Meteorite Data Analysis"
+author: "JAW"
 date: ""
 output: 
   html_document:
@@ -82,8 +82,14 @@ meteorite$country <- coords2country(coords)
 
 Our custom theme
 ```{r}
-theme_project <- theme(axis.ticks.y = element_blank(),
-panel.background = element_rect(fill = "royalblue2"), plot.background = element_rect(fill = "lightblue"), panel.grid.major = element_line(color = "lightgoldenrod1", size=.2), panel.grid.minor = element_line(color = "lightgoldenrod1", size=.2), panel.grid.major.x=element_blank())
+theme_proj<-  theme(axis.text = element_text(size = rel(0.8)), 
+    axis.ticks = element_line(colour = "black"), 
+    legend.key = element_rect(colour = "grey80"), 
+    panel.background = element_rect(fill = "white"), 
+    panel.border = element_rect(fill = NA, colour = "grey50"), 
+    panel.grid.major = element_line(colour = "azure3", size = 0.2), 
+    panel.grid.minor = element_line(colour = "white", size = 0.5), 
+    strip.background = element_rect(fill = "white", colour = "white", size = 0.2), plot.title =element_text(size=14,face="bold", family="American Typewriter"), axis.text.x=element_text(family="American Typewriter"), axis.text.y=element_text(family="American Typewriter"), axis.title.x =element_text(family="American Typewriter"), axis.title.y=element_text(family="American Typewriter"))
 ```
 
 Global data frames
@@ -114,8 +120,24 @@ meteorite_map <- meteorite %>%
   filter(reclong < 200)
 ```
 
+
+Fell vs Found Density Over the Years
+```{r message = FALSE, warning = FALSE, error = FALSE}
+fell_found_yearly %>%
+  ggplot(aes(x = year)) + geom_density(aes(fill = fall), alpha = 0.8) + labs(title = "Relative Densities of Fell vs Found Meteorites", x = "Year",y = "Density") +  scale_fill_manual("Fall Type",values=c("blue","gold")) + theme_proj
+```
+
+Density of Fell and Found Over the Years
+```{r message = FALSE, warning = FALSE, error = FALSE}
+meteorite %>%
+  filter(year >1800) %>%
+  ggplot(aes(x=year)) + geom_density(aes(fill = fall), alpha =0.8) + facet_grid(~fall) + labs(title = "Side by Side Densities of Fell vs Found Meteorites", x = "Year", y = "Density")  +
+  scale_fill_manual("Fall Type",values=c("blue", "gold")) +
+  theme_proj
+```
+
 Found/Total Ratio Per Year
-```{r}
+```{r message = FALSE, warning = FALSE, error = FALSE}
 total_per_year_df %>%
   filter(year >= 1800) %>% 
   left_join(meteorite %>%
@@ -123,25 +145,13 @@ total_per_year_df %>%
     group_by(year) %>%
     summarise(found_by_year=n())) %>%
   mutate(ratio= ifelse(is.na(found_by_year), 0, found_by_year/total_by_year)) %>%
-  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE, colour = "blue") +geom_point() + geom_smooth(method="lm", se=FALSE, colour = "gold") + labs(y = "Ratio of Found/Total per year", x = "Year")
+  ggplot(aes(x=year, y= ratio)) + geom_smooth(method="loess", se=FALSE, colour = "blue") +geom_point() + geom_smooth(method="lm", se=FALSE, colour = "gold") + labs(title = "Found/Total Ratio Over Time", x = "Year", y = "Ratio of Found/Total per year") +
+  theme_proj
 
-```
-
-Fell vs Found Density Over the Years
-```{r}
-fell_found_yearly %>%
-  ggplot(aes(x = year)) + geom_density(aes(fill = fall), alpha = 0.8) + labs(x = "Year",y = "Density") +  scale_fill_manual("Fall Type",values=c("blue","gold"))
-```
-
-Density of Fell and Found Over the Years
-```{r}
-meteorite %>%
-  filter(year >1800) %>%
-  ggplot(aes(x=year)) + geom_density(aes(fill = fall), alpha =0.8) + facet_grid(~fall) + labs(x = "Year", y = "Density")  + scale_fill_manual("Fall Type",values=c("blue", "gold")) 
 ```
 
 Fall Value Count Per Year
-```{r fig.width = 9}
+```{r fig.width = 9, message = FALSE, warning = FALSE, error = FALSE}
 plot1 <- meteorite %>%
   filter(year > 1800 & fall=="Found") %>%
   group_by(year) %>%
@@ -151,11 +161,13 @@ plot1 <- meteorite %>%
     group_by(year) %>%
     summarise(Fell_by_year=log(n()))) %>%
   ggplot(aes(x=year)) +
-  geom_line(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
-  geom_line(aes(y = Fell_by_year, colour = "Fell_by_year")) +
-  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year") +
-  scale_colour_hue(labels=c("Fell per year","Found per year")) +
-  guides(color=guide_legend(title="Color"))
+  geom_line(aes(y = Found_By_Year, colour = "Found")) + 
+  geom_line(aes(y = Fell_by_year, colour = "Fell")) +
+  labs(title="Meteorites Found Per Year", y = "Logged Count", x = "Year") +
+  scale_colour_hue(labels=c("Fell","Found")) +
+  guides(color=guide_legend(title="Fall Type")) +
+  scale_color_manual(values=c("blue", "gold")) +
+  theme_proj
 
 plot2 <- meteorite %>%
   filter(year > 1800 & fall=="Found") %>%
@@ -166,54 +178,54 @@ plot2 <- meteorite %>%
     group_by(year) %>%
     summarise(Fell_by_year=log(n()))) %>%
   ggplot(aes(x=year)) +
-  geom_smooth(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
-  geom_smooth(aes(y = Fell_by_year, colour = "Fell_by_year")) +
-  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year") +
-  scale_colour_hue(labels=c("Fell per year","Found per year")) +
-  guides(color=guide_legend(title="Color"))
+  geom_smooth(aes(y = Found_By_Year, colour = "Found"), alpha = 0.1) + 
+  geom_smooth(aes(y = Fell_by_year, colour = "Fell"), alpha = 0.1) +
+  labs(title="Meteorites Found Per Year", y = "Logged Count", x = "Year") +
+  scale_colour_hue(labels=c("Fell","Found")) +
+  guides(color=guide_legend(title="Fall Type")) +
+  scale_color_manual(values=c("blue", "gold")) +
+  theme_proj
 
 grid.arrange(plot1, plot2, ncol=2)
 ```
 
 
-```{r warning=FALSE}
+```{r message = FALSE, warning = FALSE, error = FALSE}
+#pdf("loggedMass.pdf")
 
 ggplot(meteorite, aes(x = fall, y = log(mass))) + 
   geom_boxplot(aes(fill = fall), alpha = 0.8) +
-  labs(x = "Fall", y = "Log(Mass)", title = paste("Fell vs Found log(Mass)")) +
+  labs(x = "Fall", y = "Logged Mass", title = paste("Boxplots of Logged Mass of Fell vs Found Meteorites")) +
   theme(legend.position = "none") +
- scale_fill_manual(values=c("blue", "gold"))
-
+ scale_fill_manual(values=c("blue", "gold")) +
+  theme_proj
 ```
 
 Visualization of Found vs Fell by year 
-```{r fig.height = 8, fig.width = 8}
+```{r message = FALSE, warning = FALSE, error = FALSE}
 #Use package mapdata which works well with ggplot, explain coord_fixed, geom_polygon
 
 world <- map_data("world")
-ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map, aes(x=reclong, y=reclat,color = fall), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + facet_grid(~ fall) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none") 
+ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map, aes(x=reclong, y=reclat,color = fall), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + facet_grid(~ fall) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), strip.text.x = element_text(size = 14, face = "bold", family = "Courier"), axis.text  = element_blank(), legend.position = "none") +
+  scale_color_manual(values = c("deepskyblue","gold"))
 ```
 
 
-```{r}
+```{r fig.height = 8, fig.width = 9, message = FALSE, warning = FALSE, error = FALSE}
 meteorite %>%
-  filter(year>1800) %>%
-  filter(!is.na(region)) %>%
-  group_by(year, region, fall) %>%
-  summarise(count = log(n())) %>%
-ggplot(aes(x=year, y=count)) + 
-  geom_line(aes(color = fall)) +
-  facet_wrap(~ region) + 
-  labs(title=paste("Number of Found/Fell meteorites per year by continent"), x = "Year", y = "Count") 
+  filter(year>1800) %>%
+  filter(!is.na(region)) %>%
+  group_by(year, region, fall) %>%
+  summarise(count = log(n())) %>%
+  ggplot(aes(x=year, y=count)) + 
+    geom_line(aes(color = fall)) +
+    facet_wrap(~ region) + 
+    labs(title=paste("Representations of Fell vs Found Meterorites By Continent"), x = "Year", y = "Logged Count")  +
+    scale_colour_hue(labels=c("Fell","Found")) +
+    guides(color=guide_legend(title="Fall Type")) +
+    scale_color_manual(values=c("blue", "gold")) +
+  theme_proj
 
-```
-
-
-```{r}
-# not included for now, not sure what it shows 
-
-world <- map_data("world")
-ggplot() + geom_polygon(data = world, aes(x=long, y = lat, group = group)) + geom_point(data = meteorite_map %>% filter(recclass %in% top_types$recclass), aes(x=reclong, y=reclat,color = recclass), size = 0.02, alpha = 0.3) + coord_fixed(1.2) + theme_classic() + theme(axis.title = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(), axis.text  = element_blank(), legend.position = "none")
 ```
 
 
