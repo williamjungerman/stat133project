@@ -153,7 +153,9 @@ plot1 <- meteorite %>%
   ggplot(aes(x=year)) +
   geom_line(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
   geom_line(aes(y = Fell_by_year, colour = "Fell_by_year")) +
-  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year")
+  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year") +
+  scale_colour_hue(labels=c("Fell per year","Found per year")) +
+  guides(color=guide_legend(title="Color"))
 
 plot2 <- meteorite %>%
   filter(year > 1800 & fall=="Found") %>%
@@ -166,7 +168,9 @@ plot2 <- meteorite %>%
   ggplot(aes(x=year)) +
   geom_smooth(aes(y = Found_By_Year, colour = "Found_By_Year")) + 
   geom_smooth(aes(y = Fell_by_year, colour = "Fell_by_year")) +
-  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year")
+  labs(title="Meteorites Found Per Year", y = "Number of 'Fell/Found' meteorites", x = "Year") +
+  scale_colour_hue(labels=c("Fell per year","Found per year")) +
+  guides(color=guide_legend(title="Color"))
 
 grid.arrange(plot1, plot2, ncol=2)
 ```
