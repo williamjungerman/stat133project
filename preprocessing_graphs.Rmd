@@ -44,7 +44,7 @@ meteorite <- meteorite %>%
 
 Replacing mass na's with the medians of the same meteorite types
 ```{r}
-replace_mass_na <- function(index, class) {
+replace_mass_na <- function(class) {
   same_classes <- meteorite$recclass[meteorite$recclass == class]
   masses <- meteorite$mass[same_classes]
   return(median(masses))
