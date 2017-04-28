@@ -53,7 +53,7 @@ replace_mass_na <- function(class) {
 for (count in 1:nrow(meteorite)) {
   if (is.na(meteorite[count, "mass"])) {
     class <- meteorite[count, "recclass"]
-    meteorite[count, "mass"] <- replace_mass_na(count, meteorite[count, "recclass"])
+    meteorite[count, "mass"] <- replace_mass_na(meteorite[count, "recclass"])
   } 
 }
 ```
