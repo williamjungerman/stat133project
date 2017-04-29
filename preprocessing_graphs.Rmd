@@ -31,15 +31,30 @@ Continent Function adopted from Stack Overflow: http://stackoverflow.com/questio
 
 ```{r}
 meteorite <- read.csv("~/Downloads/meteorite-landings.csv")
+#meteorite <- meteorite %>%
+#  select(-reclat, -reclong)
+#write.csv("~/Downloads/meteorite-landings.csv", x = meteorite)
 ```
+
+Add in reclat and reclong
+```{r}
+meteorite <- meteorite %>%
+  extractMatches("([-+]?[0-9]*\\.[0-9]+|[0-9]+)", GeoLocation, reclat=1) %>%
+  extractMatches("([-+]?[0-9]*\\.[0-9]+|[0-9]+)\\)$", GeoLocation, reclong=1)
+
+meteorite$reclat = as.numeric(as.character(meteorite$reclat))
+meteorite$reclong = as.numeric(as.character(meteorite$reclong))
+```
+
+
 
 take out 0 longitude/latitudes; year stuff
 ```{r}
 meteorite <- meteorite %>% 
+  select(-X) %>%
   filter(reclat != 0 & reclong != 0) %>%
   filter(year>=860 & year<=2016) %>%
-  filter(recclass != "Unknown") %>%
-  mutate(count = 1)
+  filter(recclass != "Unknown")
 ```
 
 Replacing mass na's with the medians of the same meteorite types
@@ -60,7 +75,7 @@ for (count in 1:nrow(meteorite)) {
 
 Add region and country columns
 ```{r}
-coords <- data.frame('Long' = meteorite$reclong, 'Lat' = meteorite$reclat)
+coords <- data.frame('Long' = meteorite$reclat, 'Lat' = meteorite$reclat)
 
 coords2region = function(points){ # where points is a df taking longitude as a first column and latitude as a second
   countriesSP <- getMap(resolution='low')
