@@ -31,9 +31,8 @@ Continent Function adopted from Stack Overflow: http://stackoverflow.com/questio
 
 ```{r}
 meteorite <- read.csv("~/Downloads/meteorite-landings.csv")
-#meteorite <- meteorite %>%
-#  select(-reclat, -reclong)
-#write.csv("~/Downloads/meteorite-landings.csv", x = meteorite)
+meteorite <- meteorite %>%
+  select(-reclat, -reclong)
 ```
 
 Add in reclat and reclong
@@ -51,7 +50,6 @@ meteorite$reclong = as.numeric(as.character(meteorite$reclong))
 take out 0 longitude/latitudes; year stuff
 ```{r}
 meteorite <- meteorite %>% 
-  select(-X) %>%
   filter(reclat != 0 & reclong != 0) %>%
   filter(year>=860 & year<=2016) %>%
   filter(recclass != "Unknown")
@@ -139,13 +137,14 @@ meteorite_map <- meteorite %>%
 Fell vs Found Density Over the Years
 ```{r message = FALSE, warning = FALSE, error = FALSE}
 fell_found_yearly %>%
+  filter(year > 1500) %>%
   ggplot(aes(x = year)) + geom_density(aes(fill = fall), alpha = 0.8) + labs(title = "Relative Densities of Fell vs Found Meteorites", x = "Year",y = "Density") +  scale_fill_manual("Fall Type",values=c("blue","gold")) + theme_proj
 ```
 
 Density of Fell and Found Over the Years
 ```{r message = FALSE, warning = FALSE, error = FALSE}
 meteorite %>%
-  filter(year >1800) %>%
+  filter(year > 1800) %>%
   ggplot(aes(x=year)) + geom_density(aes(fill = fall), alpha =0.8) + facet_grid(~fall) + labs(title = "Side by Side Densities of Fell vs Found Meteorites", x = "Year", y = "Density")  +
   scale_fill_manual("Fall Type",values=c("blue", "gold")) +
   theme_proj
